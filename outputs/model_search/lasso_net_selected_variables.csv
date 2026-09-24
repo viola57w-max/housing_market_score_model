@@ -1,0 +1,13 @@
+Variable,Feature_family
+MEDIAN_SALE_PRICE_MOM,price
+MEDIAN_LIST_PRICE_MOM,price
+MEDIAN_PPSF_MOM,price
+MEDIAN_LIST_PPSF_MOM,price
+HOMES_SOLD,demand_supply
+NEW_LISTINGS_YOY,demand_supply
+INVENTORY_MOM,demand_supply
+MEDIAN_DOM,market_speed
+AVG_SALE_TO_LIST,market_speed
+SOLD_ABOVE_LIST,market_speed
+OFF_MARKET_IN_TWO_WEEKS,market_speed
+County,geography

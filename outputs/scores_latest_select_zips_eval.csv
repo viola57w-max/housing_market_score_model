@@ -1,0 +1,84 @@
+Zip Code,City,County,PERIOD,y_true,y_pred
+90001,Los Angeles,Los Angeles County,2025-12,49,45
+90002,Los Angeles,Los Angeles County,2025-06,69,61
+90003,Los Angeles,Los Angeles County,2025-07,57,61
+90005,Los Angeles,Los Angeles County,2025-07,31,51
+90006,Los Angeles,Los Angeles County,2025-01,49,55
+90007,Los Angeles,Los Angeles County,2025-04,15,43
+90010,Los Angeles,Los Angeles County,2025-07,44,43
+90014,Los Angeles,Los Angeles County,2025-09,17,26
+90015,Los Angeles,Los Angeles County,2025-05,27,25
+90016,Los Angeles,Los Angeles County,2025-08,63,66
+90017,Los Angeles,Los Angeles County,2025-06,21,32
+90019,Los Angeles,Los Angeles County,2025-10,46,56
+90020,Los Angeles,Los Angeles County,2025-09,34,50
+90023,Los Angeles,Los Angeles County,2025-08,50,52
+90024,Los Angeles,Los Angeles County,2025-11,50,49
+90025,Los Angeles,Los Angeles County,2025-11,55,66
+90027,Los Angeles,Los Angeles County,2025-07,62,59
+90028,Los Angeles,Los Angeles County,2025-11,32,31
+90032,Los Angeles,Los Angeles County,2025-09,66,64
+90033,Los Angeles,Los Angeles County,2025-05,51,53
+90035,Los Angeles,Los Angeles County,2025-10,53,43
+90036,Los Angeles,Los Angeles County,2025-12,52,53
+90039,Los Angeles,Los Angeles County,2025-04,77,79
+90040,Los Angeles,Los Angeles County,2025-07,80,75
+90041,Los Angeles,Los Angeles County,2025-10,80,77
+90042,Los Angeles,Los Angeles County,2025-10,74,66
+90044,Los Angeles,Los Angeles County,2025-05,61,57
+90045,Los Angeles,Los Angeles County,2025-08,75,64
+90048,Los Angeles,Los Angeles County,2025-11,48,43
+90049,Los Angeles,Los Angeles County,2025-11,50,52
+90056,Los Angeles,Los Angeles County,2025-03,48,41
+90057,Los Angeles,Los Angeles County,2025-12,55,64
+90059,Los Angeles,Los Angeles County,2025-07,73,74
+90061,Los Angeles,Los Angeles County,2025-08,73,74
+90062,Los Angeles,Los Angeles County,2025-11,53,49
+90064,Los Angeles,Los Angeles County,2025-07,81,76
+90065,Los Angeles,Los Angeles County,2025-10,69,63
+90066,Los Angeles,Los Angeles County,2025-01,76,60
+90067,Los Angeles,Los Angeles County,2025-12,36,45
+90068,Los Angeles,Los Angeles County,2025-03,43,48
+90077,Los Angeles,Los Angeles County,2025-09,29,40
+90094,Los Angeles,Los Angeles County,2025-02,67,63
+92101,San Diego,San Diego County,2025-04,55,59
+92103,San Diego,San Diego County,2025-01,65,63
+92104,San Diego,San Diego County,2025-08,79,74
+92106,San Diego,San Diego County,2025-08,69,67
+92108,San Diego,San Diego County,2025-07,66,63
+92109,San Diego,San Diego County,2025-12,68,66
+92111,San Diego,San Diego County,2025-04,75,90
+92113,San Diego,San Diego County,2025-11,79,69
+92114,San Diego,San Diego County,2025-09,80,81
+92115,San Diego,San Diego County,2025-10,78,70
+92116,San Diego,San Diego County,2025-07,79,69
+92117,San Diego,San Diego County,2025-11,81,77
+92120,San Diego,San Diego County,2025-02,75,80
+92121,San Diego,San Diego County,2025-10,79,62
+92122,San Diego,San Diego County,2025-09,67,64
+92123,San Diego,San Diego County,2025-09,78,71
+92124,San Diego,San Diego County,2025-07,75,80
+92126,San Diego,San Diego County,2025-01,79,72
+92127,San Diego,San Diego County,2025-06,65,76
+92130,San Diego,San Diego County,2025-02,72,80
+92131,San Diego,San Diego County,2025-09,73,74
+92154,San Diego,San Diego County,2025-08,89,78
+92197,San Diego,San Diego County,2025-06,86,84
+92402,San Bernardino,San Bernardino County,2025-10,56,44
+92404,San Bernardino,San Bernardino County,2025-09,70,67
+92407,San Bernardino,San Bernardino County,2025-07,68,67
+92408,San Bernardino,San Bernardino County,2025-08,73,72
+92501,Riverside,Riverside County,2025-12,71,61
+92503,Riverside,Riverside County,2025-10,67,64
+92504,Riverside,Riverside County,2025-07,71,74
+92506,Riverside,Riverside County,2025-07,60,71
+92507,Riverside,Riverside County,2025-10,63,57
+92508,Riverside,Riverside County,2025-09,66,62
+92509,Riverside,Riverside County,2025-11,69,70
+92606,Irvine,Orange County,2025-10,55,62
+92612,Irvine,Orange County,2025-08,49,55
+92618,Irvine,Orange County,2025-08,42,50
+92701,Santa Ana,Orange County,2025-11,61,61
+92703,Santa Ana,Orange County,2025-08,56,61
+92706,Santa Ana,Orange County,2025-11,70,65
+92707,Santa Ana,Orange County,2025-09,73,67

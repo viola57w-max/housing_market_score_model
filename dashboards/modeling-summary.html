@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SoCal Market Score Modeling Summary</title>
+  <style>
+    :root { --bg:#f3ebdd; --panel:#fffdf7; --text:#171512; --muted:#5f584f; --line:#d8ccba; --accent:#245784; --good:#176b45; --bad:#a8241b; --soft:#eadfcd; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { max-width:1180px; margin:auto; padding:28px 20px 56px; }
+    h1 { margin:0 0 6px; font-size:30px; font-weight:600; }
+    h2 { margin:34px 0 12px; font-size:21px; font-weight:600; }
+    h3 { margin:20px 0 8px; font-size:17px; font-weight:600; }
+    p { margin:6px 0 12px; }
+    .muted { color:var(--muted); }
+    .lead { max-width:900px; color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:15px; }
+    .value { font-size:24px; font-weight:600; margin-top:3px; }
+    .label { color:var(--muted); font-size:13px; }
+    .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .flow div { background:var(--soft); border-radius:8px; padding:12px; }
+    .flow b { display:block; margin-bottom:4px; }
+    table { border-collapse:collapse; width:100%; background:var(--panel); }
+    th,td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+    th { color:var(--muted); font-size:12px; font-weight:600; }
+    th:first-child,td:first-child { text-align:left; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+    .pass { color:var(--good); font-weight:600; }
+    .fail { color:var(--bad); font-weight:600; }
+    .na { color:var(--muted); }
+    .note { border-left:4px solid var(--accent); padding:8px 12px; background:var(--soft); margin:14px 0; }
+    details { margin-top:14px; }
+    summary { cursor:pointer; color:var(--accent); font-weight:600; padding:8px 0; }
+    .plots { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:14px; margin-top:10px; }
+    figure { margin:0; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    figure img { display:block; width:100%; height:auto; }
+    figcaption { padding:8px 10px; font-size:13px; color:var(--muted); }
+    .score-dist { max-width:620px; margin:14px auto; }
+    .wide-figure { max-width:100%; margin:14px 0; }
+    .model { margin-top:22px; padding-top:4px; }
+    ul { margin:6px 0 14px; padding-left:22px; }
+    .interactive-controls { display:grid; grid-template-columns:minmax(220px,300px) 1fr; gap:18px; align-items:start; margin:14px 0; }
+    .control-label, fieldset legend { color:var(--muted); font-size:13px; font-weight:600; }
+    select { width:100%; margin-top:6px; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--text); font:inherit; }
+    fieldset { margin:0; padding:0; border:0; }
+    .checkbox-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:5px 12px; margin-top:6px; }
+    .checkbox-grid label { display:flex; gap:7px; align-items:flex-start; font-size:13px; }
+    .chart-shell { position:relative; width:100%; margin-top:10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; }
+    #full-period-chart { display:block; width:100%; height:auto; min-height:360px; }
+    .validation-chart { display:block; width:100%; height:auto; min-height:330px; }
+    .validation-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:12px; }
+    .chart-tooltip { position:absolute; z-index:2; max-width:300px; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--text); font-size:12px; pointer-events:none; box-shadow:0 3px 12px rgba(0,0,0,.12); }
+    .chart-tooltip[hidden] { display:none; }
+    .interactive-legend { display:flex; flex-wrap:wrap; gap:8px 16px; margin:10px 4px 2px; color:var(--muted); font-size:12px; }
+    .legend-item { display:inline-flex; align-items:center; gap:6px; }
+    .legend-line { width:24px; height:0; border-top:3px solid currentColor; }
+    .legend-line.dotted { border-top-style:dotted; }
+    .equation { margin:12px 0; text-align:center; font-family:"Times New Roman",serif; font-size:18px; }
+    .equation.boxed { width:max-content; max-width:100%; margin:14px auto; padding:6px 12px; border:1px solid var(--text); }
+    @media (max-width:760px) { .flow { grid-template-columns:1fr; } main { padding:20px 14px 40px; } }
+    @media (max-width:760px) { .interactive-controls { grid-template-columns:1fr; } #full-period-chart { min-height:280px; } .validation-chart-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>SoCal ZIP Market Score model</h1>
+  <p class="lead">Current workflow from <code>1_EDA.ipynb</code> and <code>2_modeling.ipynb</code>. The corrected calibration sample contains 83 labeled records, one per ZIP. Model statistics below are the refreshed outputs.</p>
+
+  <section>
+    <h2>1. Data processing</h2>
+    <div class="flow">
+      <div><b>Load and align</b>Read SoCal history and ZIP-level reference scores, parse dates, normalize score values, and map scores by ZIP code.</div>
+      <div><b>Define time flags</b><code>has_2025=True</code> when a ZIP has any 2025 record. <code>latest_period=True</code> marks that ZIP’s maximum <code>PERIOD_END</code> within 2025.</div>
+      <div><b>Clean and classify</b>Remove constant columns and <code>City</code>, identify identifiers, numerical and nominal categorical variables using the data dictionary.</div>
+      <div><b>Create datasets</b><code>modeling_data</code>: scored latest-period rows for training. <code>has_2025_data</code>: all history for ZIPs observed in 2025, for stability/temporal calibration. <code>full_period_data</code>: all cleaned history, for full-period scoring and trend analysis.</div>
+    </div>
+    <div class="note"><b>Missing values:</b> no imputation is needed in <code>modeling_data</code>. All 83 rows with a reference score and <code>latest_period=True</code> have zero missing cells.</div>
+    <details><summary>Missingness overview</summary><div class="table-wrap"><table>
+      <thead><tr><th>Population</th><th>Rows</th><th>Columns missing</th><th>Missing cells</th><th>Missing %</th></tr></thead>
+      <tbody>
+        <tr><td>All cleaned data</td><td>12,445</td><td>34</td><td>22,541</td><td>3.85%</td></tr>
+        <tr><td>latest_period=True</td><td>524</td><td>32</td><td>872</td><td>3.54%</td></tr>
+        <tr><td>Market Score available</td><td>2,093</td><td>25</td><td>327</td><td>0.33%</td></tr>
+        <tr><td>Score available and latest_period=True</td><td>83</td><td>0</td><td>0</td><td>0.00%</td></tr>
+      </tbody>
+    </table></div><p class="muted">Source: <code>analysis/missingness_overview.csv</code>.</p></details>
+    <h3>Distribution and scaling</h3>
+    <p>Market Score is approximately normal, so no target transformation is applied for simplicity. Lasso applies <code>StandardScaler</code> to numerical features because its penalty depends on coefficient scale. Baseline OLS remains in original units because scaling is not required for fit and original units improve interpretation. Categorical variables are one-hot encoded, not scaled.</p>
+    <figure class="score-dist"><img src="../plots/market_score_empirical_distribution.png" alt="Empirical Market Score distribution with fitted normal density"><figcaption>Market Score distribution with fitted normal curve</figcaption></figure>
+  </section>
+
+  <section id="full-period-analysis">
+    <h2>8. Full-period Analysis</h2>
+    <p>The validation work asks three different questions: whether scores are stable through time, whether they move in sensible directions with independent market signals, and whether the historical scoring population differs materially from the 83-ZIP latest-period calibration sample.</p>
+    <div class="grid">
+      <div class="card"><div class="label">Median annual absolute change</div><div class="value">9 points</div><p>Measured from 4,933 consecutive annual ZIP pairs.</p></div>
+      <div class="card"><div class="label">ZIPs with a ≥50-point jump</div><div class="value">14.4%</div><p>Among 751 ZIPs eligible for jump analysis.</p></div>
+      <div class="card"><div class="label">Maximum adjacent-record jump</div><div class="value">100 points</div><p>Large movements merit driver and source-data review.</p></div>
+    </div>
+    <h3>Historical Stability</h3>
+    <p>This check tests whether period-to-period scores remain reasonably stable when the fixed latest-period models are applied across the complete history. It measures annual absolute changes, the share of ZIPs with large observation-to-observation jumps, maximum jumps, and the frequency of scores clipped to 0 or 100. Because observations are irregular, annual changes use each ZIP's final observation in consecutive calendar years; adjacent-record changes use the available observations and therefore may span unequal time intervals.</p>
+    <div class="plots">
+      <figure><img src="../plots/full_period_score_stability_diagnostics.png" alt="Historical stability diagnostics for the champion refitted LassoCV model"><figcaption>Champion refitted LassoCV: annual score movement and observation-level jump diagnostics across the full period.</figcaption></figure>
+      <figure><img src="../plots/baseline_challenger_stability_diagnostics.png" alt="Historical stability diagnostics for the baseline OLS challenger"><figcaption>Baseline OLS challenger: the same stability diagnostics, allowing a like-for-like comparison with the champion.</figcaption></figure>
+    </div>
+    <h3>Champion versus baseline stability</h3>
+    <p>The three-variable baseline is used as a simpler challenger to test whether the champion's wider predictor set is the main cause of historical instability. Both fitted models are applied to the same full-period rows, constrained to integer scores from 0 to 100, and compared using identical annual-change, jump-frequency, maximum-jump, and boundary-score measures.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Measure</th><th>Champion refitted LassoCV</th><th>Baseline OLS</th></tr></thead>
+      <tbody>
+        <tr><td>Median annual absolute score change</td><td>9.0</td><td>9.0</td></tr>
+        <tr><td>ZIPs with ≥20-point jump</td><td>83.1%</td><td>84.4%</td></tr>
+        <tr><td>ZIPs with ≥50-point jump</td><td>14.4%</td><td>14.9%</td></tr>
+        <tr><td>Maximum adjacent-record jump</td><td>100</td><td>100</td></tr>
+        <tr><td>Scores at 0 or 100</td><td>4.9%</td><td>4.6%</td></tr>
+      </tbody>
+    </table></div>
+    <p>The three-variable baseline is not materially more stable than the champion. Contribution analysis also shows that the largest jumps can be traced to actual driver movements: ZIP 90021 falls from 100 to 0 with <code>MEDIAN_LIST_PPSF_MOM</code> as the largest contribution change; ZIP 91313 moves from 0 to 100 with <code>MEDIAN_DOM</code> dominant; and ZIP 92070 moves from 0 to 100 after <code>MEDIAN_DOM</code> falls from 2,826 to 102 days. These cases support model traceability but do not establish that the source observations are valid.</p>
+    <div class="plots">
+      <figure><img src="../plots/extreme_jump_ZIP_90021_score_contribution.png" alt="ZIP 90021 score and largest feature-contribution change over time"><figcaption>ZIP 90021: the 100-to-0 score jump and its most influential changing contribution.</figcaption></figure>
+      <figure><img src="../plots/extreme_jump_ZIP_91313_score_contribution.png" alt="ZIP 91313 score and largest feature-contribution change over time"><figcaption>ZIP 91313: the 0-to-100 score jump and its most influential changing contribution.</figcaption></figure>
+      <figure><img src="../plots/extreme_jump_ZIP_92070_score_contribution.png" alt="ZIP 92070 score and largest feature-contribution change over time"><figcaption>ZIP 92070: the 0-to-100 score jump associated with the extreme change in median days on market.</figcaption></figure>
+    </div>
+    <h3>Independent-signal sanity checks</h3>
+    <p>This check tests directional validity using market signals that were not selected by each model. For each model, the two eligible out-of-model variables with the strongest absolute Spearman relationship to the observed reference score are selected, then their Spearman relationship with latest-period predicted scores is compared with the business sign expectation. Passing results provide an independent plausibility check, although they do not establish predictive accuracy.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Out-of-model signal</th><th>Expected direction</th><th>Spearman with predicted score</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Champion</td><td>PENDING_SALES</td><td>Positive</td><td>0.179</td><td class="pass">PASS</td></tr>
+        <tr><td>Champion</td><td>MEDIAN_DOM_YOY</td><td>Negative</td><td>−0.350</td><td class="pass">PASS</td></tr>
+        <tr><td>Baseline OLS</td><td>AVG_SALE_TO_LIST</td><td>Positive</td><td>0.668</td><td class="pass">PASS</td></tr>
+        <tr><td>Baseline OLS</td><td>HOMES_SOLD</td><td>Positive</td><td>0.123</td><td class="pass">PASS</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Interactive distribution-shift review</h3>
+    <p>Use the linked controls to compare the fixed latest-period 2025 calibration benchmark with full-period scoring records. The first chart combines empirical density histograms and kernel-density curves with dashed fitted-normal references, reference P01–P99 support, and population medians; the second uses ECDFs and makes no distributional assumption. The year control filters the full-period population only, so every year is assessed against the same 83-ZIP calibration benchmark. The optional ZIP control narrows both populations where a matching reference ZIP exists.</p>
+    <div class="interactive-controls">
+      <label class="control-label" for="validation-variable">Measure
+        <select id="validation-variable" aria-label="Select score or explanatory variable"></select>
+      </label>
+      <label class="control-label" for="validation-year">Year
+        <select id="validation-year" aria-label="Select year"></select>
+      </label>
+      <label class="control-label" for="validation-zip">ZIP code
+        <select id="validation-zip" aria-label="Select ZIP code"></select>
+      </label>
+    </div>
+    <p id="validation-chart-summary" class="muted" aria-live="polite"></p>
+    <div class="validation-chart-grid">
+      <div class="chart-shell"><svg id="validation-distribution-chart" class="validation-chart" viewBox="0 0 1100 450" role="img" aria-label="Interactive empirical and fitted distribution comparison"></svg></div>
+      <div class="chart-shell"><svg id="validation-ecdf-chart" class="validation-chart" viewBox="0 0 1100 450" role="img" aria-label="Interactive ECDF comparison"></svg></div>
+    </div>
+    <div class="note"><b>Observed shift:</b> across all periods and ZIPs, the predicted-score median is 72 versus 63 in the reference sample, and 17.7% of historical scores exceed the reference 99th percentile. <code>OFF_MARKET_IN_TWO_WEEKS</code> has the largest measured separation (KS 0.348), while <code>MEDIAN_DOM</code> shifts from a reference median of 53 days to 41 days and develops a longer historical tail. These differences may combine real market cycles, geographic coverage, and data-quality effects; they are screening evidence, not proof of bad data.</div>
+    <div class="note"><b>Potential stability improvements to test:</b> (1) transform highly concentrated MOM/YOY predictors with long tails and retrain the model, then re-evaluate calibration and stability; or (2) retain the fitted model and adjust materially shifted predictor distributions toward the latest-period calibration distribution before scoring. The second approach avoids model retraining but is a contingency method that still requires explicit testing for stability, calibration preservation, economic meaning, and unintended score distortion.</div>
+  </section>
+
+  <section>
+    <h2>2. Modeling methodology</h2>
+    <div class="grid">
+      <div class="card"><div class="label">OLS benchmark</div><div class="value">3 variables</div><p>Brute-force OLS over valid 2–4 variable specifications. The small search space favors explanation, reviewability, and direct business interpretation.</p></div>
+      <div class="card"><div class="label">LassoCV</div><div class="value">12 variables</div><p>Applies incompatibility rules first, then uses five-fold cross-validation to tune shrinkage and reduce complexity while preserving predictive information.</p></div>
+      <div class="card"><div class="label">Champion: refitted LassoCV</div><div class="value">9 variables</div><p>Removes two economically inconsistent variables and provides the best balance of fit, explanation, and business checks.</p></div>
+    </div>
+    <h3>Why both methods?</h3>
+    <p><b>Brute-force OLS</b> deliberately limits original variables to 2–4. This makes the benchmark easy to explain and allows conventional diagnostics to remain readable. <b>LassoCV</b> starts from a broader compatible set and shrinks weak coefficients to zero, offering a lower-complexity alternative to an unrestricted regression. The refit is a business-sign contingency, not a new validation exercise.</p>
+    <h3>How does Lasso handle missing predictors?</h3>
+    <p>The Lasso pipeline includes imputation inside its preprocessing step. Numerical missing values are replaced with the training-sample median before standardization, while missing categorical values are replaced with the training-sample mode before one-hot encoding. During cross-validation, these replacement values are learned separately from each training fold and then applied to its held-out fold, which avoids using validation information during preprocessing. The fitted pipeline carries the same learned rules into latest-period and full-period scoring; unseen category levels are safely ignored. Although the 83-row latest-period calibration sample has no missing cells, this preprocessing allows the fitted model to score historical or application rows whose selected predictors are incomplete. Imputation supplies a usable input—it does not create new market information—so outputs based on imputed predictors should still be monitored.</p>
+    <h3>Selection criteria</h3>
+    <ul>
+      <li><b>Statistical:</b> RMSE, MAE, R², adjusted R², Spearman rank correlation, variable t-tests or categorical joint F-tests, overall F-test, AIC/AICc/BIC, VIF, condition number, and Cook’s distance.</li>
+      <li><b>Business:</b> expected coefficient direction; coverage of price, demand/supply, and market-speed families; and exclusion of competing level/MOM/YOY versions of the same measure.</li>
+      <li><b>Validation:</b> each corrected row is a unique ZIP, so shuffled five-fold validation produces out-of-fold Lasso predictions. These metrics are the best current estimate of generalization.</li>
+    </ul>
+    <h3>How did you constrain predictions to 0–100?</h3>
+    <p>The OLS and refitted-Lasso models first generate unrestricted continuous predictions. Each prediction is then rounded to the nearest integer and passed through a deterministic score-range rule: values below 0 are floored at 0, values above 100 are capped at 100, and values already within the range are retained. The notebook counts predictions outside each boundary before clipping and prints a message whenever either rule is triggered. The champion’s constrained integer output is stored as <code>Market_Score_hat_latest</code>. This is a post-model reporting constraint; it does not alter model fitting or coefficients.</p>
+  </section>
+
+  <section>
+    <h2>3. Model results</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Basis</th><th>Original variables</th><th>Parameters</th><th>R²</th><th>Adj. R²</th><th>RMSE</th><th>MAE</th><th>Spearman</th><th>Sign</th></tr></thead>
+      <tbody>
+        <tr><td>Baseline OLS benchmark</td><td>In-sample</td><td>3</td><td>4</td><td>0.713</td><td>0.702</td><td>8.820</td><td>6.917</td><td>0.862</td><td class="pass">PASS</td></tr>
+        <tr><td>LassoCV</td><td>Out-of-fold</td><td>12</td><td>12</td><td>0.606</td><td>—</td><td>10.323</td><td>7.566</td><td>0.830</td><td class="fail">2 failures*</td></tr>
+        <tr><td>LassoCV</td><td>In-sample</td><td>12</td><td>12</td><td>0.788</td><td>0.752</td><td>7.572</td><td>5.883</td><td>0.887</td><td class="fail">FAIL</td></tr>
+        <tr><td>Champion: refitted LassoCV</td><td>In-sample</td><td>9</td><td>9</td><td>0.770</td><td>0.742</td><td>7.890</td><td>6.126</td><td>0.873</td><td class="pass">PASS</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">*Initial Lasso sign failures: <code>MEDIAN_PPSF_MOM</code> and <code>INVENTORY_MOM</code>. Refit CV statistics are unavailable because the contingency refit uses all modeling data once. Do not compare its in-sample error directly with Lasso out-of-fold error.</p>
+    <figure class="score-dist"><img src="../plots/model_Market_Score_hat_comparison.png" alt="Observed versus fitted Market Score for baseline OLS and refitted LassoCV"><figcaption>Observed versus fitted Market Score on the corrected 83-ZIP calibration sample</figcaption></figure>
+
+    <article class="model">
+      <h3>Baseline OLS benchmark</h3>
+      <p>Variables: <code>MEDIAN_DOM</code>, <code>SOLD_ABOVE_LIST</code>, and <code>OFF_MARKET_IN_TWO_WEEKS</code>.</p>
+      <details><summary>Coefficients and p-values</summary>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Coefficient</th><th>Estimate</th><th>p-value</th><th>Sign review</th></tr></thead>
+        <tbody>
+          <tr><td>Intercept</td><td>63.907</td><td>1.63e−18</td><td class="na">N/A</td></tr>
+          <tr><td>MEDIAN_DOM</td><td>−0.355</td><td>1.92e−9</td><td class="pass">PASS</td></tr>
+          <tr><td>SOLD_ABOVE_LIST</td><td>26.385</td><td>0.000582</td><td class="pass">PASS</td></tr>
+          <tr><td>OFF_MARKET_IN_TWO_WEEKS</td><td>36.869</td><td>0.00122</td><td class="pass">PASS</td></tr>
+        </tbody>
+      </table></div></details>
+      <details><summary>Selected-variable plots (3)</summary><div class="plots">
+        <figure><img src="../plots/MEDIAN_DOM_vs_score.png" alt="Median days on market versus Market Score"><figcaption>MEDIAN_DOM</figcaption></figure>
+        <figure><img src="../plots/SOLD_ABOVE_LIST_vs_score.png" alt="Share sold above list versus Market Score"><figcaption>SOLD_ABOVE_LIST</figcaption></figure>
+        <figure><img src="../plots/OFF_MARKET_IN_TWO_WEEKS_vs_score.png" alt="Share off market in two weeks versus Market Score"><figcaption>OFF_MARKET_IN_TWO_WEEKS</figcaption></figure>
+      </div></details>
+    </article>
+
+    <article class="model">
+      <h3>LassoCV</h3>
+      <p>This table reproduces the current <code>lasso_net_coefficients.csv</code>. Coefficients are on standardized numerical inputs; p-values are exploratory post-selection OLS tests, with the selected county level evaluated by a joint F-test.</p>
+      <details><summary>Coefficients, p-values, and sign checks</summary>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Encoded feature</th><th>Original variable</th><th>Category level</th><th>Coefficient</th><th>Selected</th><th>Expected sign</th><th>Sign check</th><th>Test</th><th>p-value</th></tr></thead>
+        <tbody>
+          <tr><td>MEDIAN_SALE_PRICE_MOM</td><td>MEDIAN_SALE_PRICE_MOM</td><td>—</td><td>0.781736</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.464171</td></tr>
+          <tr><td>MEDIAN_LIST_PRICE_MOM</td><td>MEDIAN_LIST_PRICE_MOM</td><td>—</td><td>0.696793</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.145687</td></tr>
+          <tr><td>MEDIAN_PPSF_MOM</td><td>MEDIAN_PPSF_MOM</td><td>—</td><td>−1.550491</td><td>True</td><td>positive</td><td class="fail">FAIL</td><td>t</td><td>0.022372</td></tr>
+          <tr><td>MEDIAN_LIST_PPSF_MOM</td><td>MEDIAN_LIST_PPSF_MOM</td><td>—</td><td>1.901377</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.098872</td></tr>
+          <tr><td>HOMES_SOLD</td><td>HOMES_SOLD</td><td>—</td><td>0.715284</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.771383</td></tr>
+          <tr><td>NEW_LISTINGS_YOY</td><td>NEW_LISTINGS_YOY</td><td>—</td><td>−1.678901</td><td>True</td><td>unconstrained</td><td class="na">NOT_APPLICABLE</td><td>t</td><td>0.029838</td></tr>
+          <tr><td>INVENTORY_MOM</td><td>INVENTORY_MOM</td><td>—</td><td>0.406723</td><td>True</td><td>negative</td><td class="fail">FAIL</td><td>t</td><td>0.344551</td></tr>
+          <tr><td>MEDIAN_DOM</td><td>MEDIAN_DOM</td><td>—</td><td>−6.954587</td><td>True</td><td>negative</td><td class="pass">PASS</td><td>t</td><td>0.001060</td></tr>
+          <tr><td>AVG_SALE_TO_LIST</td><td>AVG_SALE_TO_LIST</td><td>—</td><td>1.748523</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.046912</td></tr>
+          <tr><td>SOLD_ABOVE_LIST</td><td>SOLD_ABOVE_LIST</td><td>—</td><td>2.749813</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.048054</td></tr>
+          <tr><td>OFF_MARKET_IN_TWO_WEEKS</td><td>OFF_MARKET_IN_TWO_WEEKS</td><td>—</td><td>4.868400</td><td>True</td><td>positive</td><td class="pass">PASS</td><td>t</td><td>0.000167</td></tr>
+          <tr><td>County_Los Angeles County</td><td>County</td><td>Los Angeles County</td><td>−0.533118</td><td>True</td><td>not_applicable</td><td class="na">NOT_APPLICABLE</td><td>joint_F</td><td>0.406857</td></tr>
+        </tbody>
+      </table></div></details>
+      <details><summary>Selected-variable plots (12)</summary><div class="plots">
+        <figure><img src="../plots/MEDIAN_SALE_PRICE_MOM_vs_score.png" alt="MEDIAN_SALE_PRICE_MOM versus score"><figcaption>MEDIAN_SALE_PRICE_MOM</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_LIST_PRICE_MOM_vs_score.png" alt="MEDIAN_LIST_PRICE_MOM versus score"><figcaption>MEDIAN_LIST_PRICE_MOM</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_PPSF_MOM_vs_score.png" alt="MEDIAN_PPSF_MOM versus score"><figcaption>MEDIAN_PPSF_MOM</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_LIST_PPSF_MOM_vs_score.png" alt="MEDIAN_LIST_PPSF_MOM versus score"><figcaption>MEDIAN_LIST_PPSF_MOM</figcaption></figure>
+        <figure><img src="../plots/HOMES_SOLD_vs_score.png" alt="HOMES_SOLD versus score"><figcaption>HOMES_SOLD</figcaption></figure>
+        <figure><img src="../plots/NEW_LISTINGS_YOY_vs_score.png" alt="NEW_LISTINGS_YOY versus score"><figcaption>NEW_LISTINGS_YOY</figcaption></figure>
+        <figure><img src="../plots/INVENTORY_MOM_vs_score.png" alt="INVENTORY_MOM versus score"><figcaption>INVENTORY_MOM</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_DOM_vs_score.png" alt="MEDIAN_DOM versus score"><figcaption>MEDIAN_DOM</figcaption></figure>
+        <figure><img src="../plots/AVG_SALE_TO_LIST_vs_score.png" alt="AVG_SALE_TO_LIST versus score"><figcaption>AVG_SALE_TO_LIST</figcaption></figure>
+        <figure><img src="../plots/SOLD_ABOVE_LIST_vs_score.png" alt="SOLD_ABOVE_LIST versus score"><figcaption>SOLD_ABOVE_LIST</figcaption></figure>
+        <figure><img src="../plots/OFF_MARKET_IN_TWO_WEEKS_vs_score.png" alt="OFF_MARKET_IN_TWO_WEEKS versus score"><figcaption>OFF_MARKET_IN_TWO_WEEKS</figcaption></figure>
+        <figure><img src="../plots/County_vs_score.png" alt="County versus score"><figcaption>County</figcaption></figure>
+      </div></details>
+    </article>
+
+    <article class="model">
+      <h3>Champion: refitted LassoCV</h3>
+      <p>The refit removes the two initial sign failures. All constrained coefficients now pass the direction check; <code>NEW_LISTINGS_YOY</code> remains direction-unconstrained. The County variable was not manually excluded: after refitting, LassoCV shrank the encoded <code>County_Los Angeles County</code> coefficient to zero because it provided insufficient incremental predictive value beyond the retained market variables. Its initial effect was already weak, with a joint p-value of approximately 0.407.</p>
+      <details><summary>Coefficients, p-values, and sign checks</summary>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Selected coefficient</th><th>Estimate</th><th>p-value</th><th>Sign</th></tr></thead>
+        <tbody>
+          <tr><td>MEDIAN_SALE_PRICE_MOM</td><td>1.126</td><td>0.0338</td><td class="pass">PASS</td></tr>
+          <tr><td>MEDIAN_LIST_PRICE_MOM</td><td>0.315</td><td>0.367</td><td class="pass">PASS</td></tr>
+          <tr><td>MEDIAN_LIST_PPSF_MOM</td><td>1.908</td><td>0.0475</td><td class="pass">PASS</td></tr>
+          <tr><td>HOMES_SOLD</td><td>0.877</td><td>0.184</td><td class="pass">PASS</td></tr>
+          <tr><td>NEW_LISTINGS_YOY</td><td>−1.384</td><td>0.0313</td><td class="na">N/A</td></tr>
+          <tr><td>MEDIAN_DOM</td><td>−7.590</td><td>8.43e−8</td><td class="pass">PASS</td></tr>
+          <tr><td>AVG_SALE_TO_LIST</td><td>0.845</td><td>0.556</td><td class="pass">PASS</td></tr>
+          <tr><td>SOLD_ABOVE_LIST</td><td>2.751</td><td>0.0132</td><td class="pass">PASS</td></tr>
+          <tr><td>OFF_MARKET_IN_TWO_WEEKS</td><td>4.708</td><td>8.74e−5</td><td class="pass">PASS</td></tr>
+        </tbody>
+      </table></div></details>
+      <details><summary>Feature importance and top-three business drivers</summary>
+        <figure class="wide-figure"><img src="../plots/refitted_lasso_cv_feature_importance.png" alt="Signed standardized coefficients for the refitted LassoCV model"><figcaption>Refitted LassoCV feature importance. Bar length is the absolute standardized-coefficient magnitude; direction shows whether the feature raises or lowers the predicted score.</figcaption></figure>
+        <ul>
+          <li><b>MEDIAN_DOM (−7.590):</b> the largest driver by absolute coefficient. Longer marketing time indicates slower buyer absorption and reduces the Market Score; faster-moving inventory therefore supports a stronger score.</li>
+          <li><b>OFF_MARKET_IN_TWO_WEEKS (+4.708):</b> a larger share of listings leaving the market quickly signals strong near-term demand and competitive buyer activity, increasing the Market Score.</li>
+          <li><b>SOLD_ABOVE_LIST (+2.751):</b> a higher share of homes selling above asking price indicates bidding pressure and seller leverage, increasing the Market Score.</li>
+        </ul>
+        <p class="muted">These rankings use absolute coefficients after numerical standardization, making magnitudes comparable across predictors. They describe conditional model influence—not causality—and correlated features can divide or reallocate importance.</p>
+      </details>
+      <details><summary>Selected-variable plots (9)</summary><div class="plots">
+        <figure><img src="../plots/MEDIAN_SALE_PRICE_MOM_vs_score.png" alt="MEDIAN_SALE_PRICE_MOM versus score"><figcaption>MEDIAN_SALE_PRICE_MOM</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_LIST_PRICE_MOM_vs_score.png" alt="MEDIAN_LIST_PRICE_MOM versus score"><figcaption>MEDIAN_LIST_PRICE_MOM</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_LIST_PPSF_MOM_vs_score.png" alt="MEDIAN_LIST_PPSF_MOM versus score"><figcaption>MEDIAN_LIST_PPSF_MOM</figcaption></figure>
+        <figure><img src="../plots/HOMES_SOLD_vs_score.png" alt="HOMES_SOLD versus score"><figcaption>HOMES_SOLD</figcaption></figure>
+        <figure><img src="../plots/NEW_LISTINGS_YOY_vs_score.png" alt="NEW_LISTINGS_YOY versus score"><figcaption>NEW_LISTINGS_YOY</figcaption></figure>
+        <figure><img src="../plots/MEDIAN_DOM_vs_score.png" alt="MEDIAN_DOM versus score"><figcaption>MEDIAN_DOM</figcaption></figure>
+        <figure><img src="../plots/AVG_SALE_TO_LIST_vs_score.png" alt="AVG_SALE_TO_LIST versus score"><figcaption>AVG_SALE_TO_LIST</figcaption></figure>
+        <figure><img src="../plots/SOLD_ABOVE_LIST_vs_score.png" alt="SOLD_ABOVE_LIST versus score"><figcaption>SOLD_ABOVE_LIST</figcaption></figure>
+        <figure><img src="../plots/OFF_MARKET_IN_TWO_WEEKS_vs_score.png" alt="OFF_MARKET_IN_TWO_WEEKS versus score"><figcaption>OFF_MARKET_IN_TWO_WEEKS</figcaption></figure>
+      </div></details>
+    </article>
+  </section>
+
+  <section>
+    <h2>4. Latest-period calibration and reference validation</h2>
+    <h3>How was the model fitted to the reference scores?</h3>
+    <p>For every ZIP with a 2025 observation, the calibration date is its maximum <code>PERIOD_END</code> within 2025. The reference table is joined by ZIP, leaving 83 unique labeled latest-period rows with no missing model fields. Baseline OLS and LassoCV are fitted only on these aligned rows; earlier observations are not used as additional training labels. Lasso preprocessing median-imputes numerical predictors if needed, one-hot encodes nominal categories, and standardizes numerical inputs before penalization.</p>
+    <p>The initial Lasso applies feature-incompatibility rules and selects its penalty by five-fold cross-validation. Two selected variables fail their expected economic signs—<code>MEDIAN_PPSF_MOM</code> and <code>INVENTORY_MOM</code>—so the contingency refit removes them and reruns LassoCV on the 83 calibration rows. The resulting nine-variable refitted Lasso is the champion.</p>
+    <h3>How does the model convert market metrics into a score?</h3>
+    <p>The model standardizes each numerical input, multiplies it by its fitted coefficient, and adds the contributions with the intercept. Faster and more competitive conditions raise the score: more homes sold above list and more homes going off market within two weeks contribute positively, while longer median days on market contributes negatively. The continuous result is rounded to an integer and clipped to the required 0–100 range.</p>
+    <h3>Simple reference-alignment validation</h3>
+    <div class="grid">
+      <div class="card"><div class="label">Calibration ZIPs</div><div class="value">83</div><p>One latest-2025 row per reference ZIP.</p></div>
+      <div class="card"><div class="label">RMSE / MAE</div><div class="value">7.89 / 6.13</div><p>Champion in-sample error against the reference scores.</p></div>
+      <div class="card"><div class="label">R² / adjusted R²</div><div class="value">0.770 / 0.742</div><p>Share of calibration-score variation explained.</p></div>
+      <div class="card"><div class="label">Spearman</div><div class="value">0.873</div><p>Strong agreement in ZIP score ranking.</p></div>
+    </div>
+    <figure class="wide-figure"><img src="../plots/model_Market_Score_hat_comparison.png" alt="Observed reference scores versus fitted baseline OLS and refitted LassoCV scores"><figcaption>Observed reference scores versus fitted scores on the 83 aligned latest-period ZIPs. The diagonal represents perfect agreement.</figcaption></figure>
+    <p class="muted">These are calibration-sample statistics. The initial Lasso has an outer-fold validation result, but the sign-constrained contingency refit has not yet been reevaluated through a fresh outer cross-validation loop.</p>
+  </section>
+
+  <section>
+    <h2>5. Validation for all latest-period SoCal ZIPs</h2>
+    <p>The champion pipeline is applied without retraining to all 524 ZIPs with a latest 2025 record. Predictions are rounded and clipped to 0–100; six raw predictions fall below 0 and six exceed 100, so the range rule is triggered. The required output is <code>scores_latest_all_zips.csv</code>, and an enriched copy retains all nine selected explanatory variables for review.</p>
+    <h3>Do scores align with key market signals?</h3>
+    <p>The three lowest-p-value numerical drivers show the expected monotonic directions across the 524 latest-period ZIPs. Higher scores coincide with fewer days on market, a larger share going off market within two weeks, and a larger share sold above list.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Signal</th><th>Expected direction</th><th>Spearman with score</th><th>Rows</th><th>Check</th></tr></thead>
+      <tbody>
+        <tr><td>MEDIAN_DOM</td><td>Negative</td><td>−0.853</td><td>524</td><td class="pass">PASS</td></tr>
+        <tr><td>OFF_MARKET_IN_TWO_WEEKS</td><td>Positive</td><td>0.793</td><td>518</td><td class="pass">PASS</td></tr>
+        <tr><td>SOLD_ABOVE_LIST</td><td>Positive</td><td>0.661</td><td>524</td><td class="pass">PASS</td></tr>
+      </tbody>
+    </table></div>
+    <figure class="wide-figure"><img src="../plots/latest_all_zips_market_signal_alignment.png" alt="Champion Market Score plotted against median days on market, off market in two weeks, and sold above list"><figcaption>Direct latest-period signal check. All three relationships have the expected economic direction.</figcaption></figure>
+    <h3>Top and bottom ZIP review</h3>
+    <p>The two views below compare the champion’s ten highest- and ten lowest-scoring ZIPs with its three most important business drivers. ZIP codes are on the x-axis and connected observations emphasize differences across the ranked groups. The left y-axis shows the constrained predicted score and <code>MEDIAN_DOM</code> in days; the percentage-formatted right y-axis shows <code>OFF_MARKET_IN_TWO_WEEKS</code> and <code>SOLD_ABOVE_LIST</code>. Green diamonds represent predicted scores, while dotted orange lines represent the explanatory variables.</p>
+    <div class="plots">
+      <figure><img src="../plots/latest_selected_reference_top_bottom_score_drivers.png" alt="Top and bottom ten selected reference ZIPs by latest-period predicted score with three key explanatory variables"><figcaption>Selected reference ZIPs: predicted score extremes and key market signals.</figcaption></figure>
+      <figure><img src="../plots/latest_all_zips_top_bottom_score_drivers.png" alt="Top and bottom ten of all 524 ZIPs by latest-period predicted score with three key explanatory variables"><figcaption>All 524 latest-period ZIPs: predicted score extremes and key market signals.</figcaption></figure>
+    </div>
+    <p class="muted">The extremes generally move in the intended direction: high-score ZIPs tend to have faster sales and stronger competitive signals, while low-score ZIPs tend to be weaker. Individual drivers can diverge because the final score combines all nine champion variables. Several all-ZIP predictions reach the 0 or 100 boundary, so ordering within a tied capped or floored group is not economically meaningful and should be reviewed as a calibration limitation.</p>
+    <div class="note"><b>Interpretation:</b> this is a model-behavior sanity check, not independent accuracy validation, because these signals are model inputs. A stronger future test would repeat the checks on an untouched sample or compare score groups with outcomes not used in model fitting.</div>
+    <h3>Cross-sectional averages by latest month</h3>
+    <p>The period-average views provide an additional plausibility check: score movements generally track faster market speed and stronger competitive signals. However, each ZIP contributes only its own latest 2025 record, so the ZIP population changes by month. These figures combine market movement with sample-composition effects and are not a fixed-panel time series.</p>
+    <div class="plots">
+      <figure><img src="../plots/selected_zips_average_score_and_signals_by_period.png" alt="Average reference score, predicted score, and market signals by latest month for selected ZIPs"><figcaption>Selected reference ZIPs: average observed score, predicted score, and key signals by latest month.</figcaption></figure>
+      <figure><img src="../plots/all_zips_average_score_and_signals_by_period.png" alt="Average champion score and market signals by latest month for all ZIPs"><figcaption>All 524 ZIPs: average champion score and key signals by latest month.</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>6. Optional extension across time</h2>
+    <p>The fitted latest-period models are applied without retraining to 1,505 historical rows belonging to the 83 scored ZIPs that also have 2025 data. Each row uses its own period-specific market features, producing a period-sensitive score.</p>
+    <h3>Historical diagnostic statistics</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Rows</th><th>RMSE</th><th>MAE</th><th>R²</th><th>Spearman</th></tr></thead>
+      <tbody>
+        <tr><td>Baseline OLS</td><td>1,505</td><td>17.868419</td><td>13.883721</td><td>−0.198101</td><td>0.556168</td></tr>
+        <tr><td>Refitted LassoCV</td><td>1,505</td><td>18.212223</td><td>14.144850</td><td>−0.244650</td><td>0.552837</td></tr>
+      </tbody>
+    </table></div>
+    <div class="plots">
+      <figure><img src="../plots/Market_Score_hat_all_zip_comparison.png" alt="Historical observed benchmark versus model predictions, with latest-period observations highlighted"><figcaption>Historical diagnostic for the scored ZIPs. Green points identify the actual latest-period rows used for valid reference comparison.</figcaption></figure>
+      <figure><img src="../plots/ZIP_92612_Refitted_LassoCV_score_driver_trend.png" alt="Refitted LassoCV score and key market drivers over time for ZIP 92612"><figcaption>ZIP 92612: predicted score and standardized key drivers across available periods.</figcaption></figure>
+    </div>
+    <div class="note"><b>Why is historical R² negative?</b> True historical Market Scores are unavailable. The latest-2025 ZIP score is repeated across earlier rows only as a benchmark, creating a time-invariant target while the model responds to period-specific conditions. Baseline OLS has historical R² −0.198 and refitted LassoCV −0.245 under this artificial comparison. These values do not measure historical accuracy; historical output should instead be reviewed for gradual movement, stability, and sensible response to market signals.</div>
+    <p>ZIP 92612, with 27 observations, is used for the detailed score-and-driver trend example. Its period-specific predicted Market Score broadly follows changes in the three most significant explanatory variables: <code>MEDIAN_DOM</code>, <code>OFF_MARKET_IN_TWO_WEEKS</code>, and <code>SOLD_ABOVE_LIST</code>. However, the historical predictions are generally above the ZIP’s mapped latest-period reference score. This difference may reflect changing market conditions, the time-invariant reference benchmark, or model calibration and should receive further business analysis before the historical scores are used operationally.</p>
+    <h3>Generated scoring outputs</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>File</th><th>Rows</th><th>Columns</th></tr></thead>
+      <tbody>
+        <tr><td>scores_latest_select_zips_eval.csv</td><td>83</td><td>Zip Code, City, County, PERIOD, y_true, y_pred</td></tr>
+        <tr><td>scores_latest_all_zips.csv</td><td>524</td><td>Zip Code, City, County, PERIOD, MarketScore_hat</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="full-period-scoring">
+    <h2>7. Full-period Scoring</h2>
+    <p>The fixed champion refitted-LassoCV pipeline is applied without retraining to every existing SoCal ZIP-period record. The same fitted median imputation, standardization, and model coefficients used for latest-period scoring are preserved. Predictions are rounded and clipped to 0–100; missing time points are not created.</p>
+    <div class="grid">
+      <div class="card"><div class="label">Rows scored</div><div class="value">12,445</div><p>One row per existing ZIP and month.</p></div>
+      <div class="card"><div class="label">ZIP codes</div><div class="value">764</div><p>All ZIPs represented in the cleaned history.</p></div>
+      <div class="card"><div class="label">Periods</div><div class="value">166</div><p>March 2012 through December 2025.</p></div>
+      <div class="card"><div class="label">Range adjustments</div><div class="value">571</div><p>149 predictions floored at 0; 422 capped at 100.</p></div>
+    </div>
+    <h3>Interactive ZIP score and explanatory-variable history</h3>
+    <p>Select a ZIP and any champion-model explanatory variables. <code>MarketScore_hat</code> remains on the left 0–100 axis. Selected explanatory variables are standardized within the chosen ZIP and shown as dotted lines on the right axis, allowing variables with different units to be compared without changing their underlying values.</p>
+    <div class="interactive-controls">
+      <label class="control-label" for="full-period-zip">ZIP code
+        <select id="full-period-zip" aria-label="Select ZIP code"></select>
+      </label>
+      <fieldset>
+        <legend>Explanatory variables</legend>
+        <div id="full-period-variable-controls" class="checkbox-grid"></div>
+      </fieldset>
+    </div>
+    <p id="full-period-chart-summary" class="muted" aria-live="polite"></p>
+    <div class="chart-shell" id="full-period-chart-shell">
+      <svg id="full-period-chart" viewBox="0 0 1100 520" role="img" aria-label="Interactive full-period Market Score chart"></svg>
+      <div id="full-period-tooltip" class="chart-tooltip" hidden></div>
+      <div id="full-period-legend" class="interactive-legend" aria-label="Chart legend"></div>
+    </div>
+    <div class="note"><b>How to interpret the chart:</b> co-movement shows whether the period-sensitive score responds plausibly to its drivers; it does not prove historical accuracy because true historical reference scores are unavailable. The driver axis reports within-ZIP z-scores, while the tooltip retains original variable values. Lines connect existing observations across irregular gaps; no missing months are imputed.</div>
+    <p>The complete output is saved as <code>scores_all_periods.csv</code> with columns <code>Zip Code</code>, <code>City</code>, <code>County</code>, <code>PERIOD</code>, and <code>MarketScore_hat</code>.</p>
+  </section>
+
+  <section id="full-period-scoring-adjusted">
+    <h2>9. Full-period Scoring (Adjusted)</h2>
+    <p>This contingency tests whether limiting historical predictor extrapolation and aligning the score distribution with the latest-period calibration regime can improve stability. It does not retrain the champion model.</p>
+    <h3>Stage 1 — Reference-based predictor trimming</h3>
+    <p>For each of the nine numerical champion predictors, Tukey limits are estimated from the 83 latest-period reference rows: <code>Q1 − 1.5×IQR</code> and <code>Q3 + 1.5×IQR</code>. Historical values outside those limits are floored or capped, missing values remain available to the fitted pipeline's imputer, and the unchanged refitted-LassoCV pipeline scores all 12,445 rows. The most frequently adjusted variable is <code>OFF_MARKET_IN_TWO_WEEKS</code> (2,364 rows; 19.0%), followed by <code>MEDIAN_LIST_PPSF_MOM</code> (10.8%) and <code>MEDIAN_SALE_PRICE_MOM</code> (10.5%).</p>
+    <div class="grid">
+      <div class="card"><div class="label">Median annual change</div><div class="value">9 → 8</div><p>Absolute score points.</p></div>
+      <div class="card"><div class="label">ZIPs with ≥50-point jump</div><div class="value">14.4% → 3.9%</div><p>Original versus IQR-trimmed predictions.</p></div>
+      <div class="card"><div class="label">Maximum observed jump</div><div class="value">100 → 72</div><p>Across consecutive available observations.</p></div>
+      <div class="card"><div class="label">Boundary scores</div><div class="value">4.9% → 0.1%</div><p>Share scored at 0 or 100.</p></div>
+    </div>
+    <div class="plots">
+      <figure><img src="../plots/full_period_score_stability_adjusted_diagnostics.png" alt="IQR-adjusted full-period score stability diagnostics"><figcaption>IQR trimming reduces extreme score movement, although consecutive observations may span irregular and sometimes long time gaps.</figcaption></figure>
+      <figure><img src="../plots/adjusted_latest_out_of_model_signal_sanity_check.png" alt="Independent signal sanity check after IQR adjustment"><figcaption>Directional sanity checks remain positive for <code>PENDING_SALES</code> (ρ=0.194) and negative for <code>MEDIAN_DOM_YOY</code> (ρ=−0.347); both pass.</figcaption></figure>
+    </div>
+    <div class="note"><b>Measurement boundary:</b> these stability and sanity results are calculated after predictor trimming but before the fitted-Normal score overlay described below. Stability should be recalculated on the final mapped scores before operational use.</div>
+
+    <h3>Stage 2 — Fitted-Normal distribution overlay</h3>
+    <div class="card">
+      <p>Consider:</p>
+      <ul>
+        <li><b>A</b>: latest-period data</li>
+        <li><b>B</b>: full-period data</li>
+      </ul>
+      <h3>Transform B → A</h3>
+      <p>Rather than directly mapping B to the empirical distribution of A, assume that<br>the latest-period data follows a Normal distribution:</p>
+      <div class="equation">Y<sub>A</sub> ∼ 𝒩(μ<sub>A</sub>,σ<sub>A</sub><sup>2</sup>),</div>
+      <p>where μ<sub>A</sub> and σ<sub>A</sub> are estimated from the latest-period sample A.</p>
+      <p>For the full-period data:</p>
+      <div class="equation">Y<sub>B</sub> ∼ F<sub>B</sub>.</div>
+      <p>First, map each observation in B to its percentile under the distribution of B:</p>
+      <div class="equation">U<sub>B</sub> = F<sub>B</sub>(Y<sub>B</sub>).</div>
+      <p>Then map this percentile to the fitted Normal distribution of A:</p>
+      <div class="equation">Y′<sub>B</sub><br>=<br>F<sup>−1</sup><sub>A,Normal</sub>(U<sub>B</sub>)<br>=<br>μ<sub>A</sub> + σ<sub>A</sub> Φ<sup>−1</sup>(U<sub>B</sub>).</div>
+      <p>Therefore,</p>
+      <div class="equation boxed">Y′<sub>B</sub> = μ<sub>A</sub> + σ<sub>A</sub> Φ<sup>−1</sup>(F<sub>B</sub>(Y<sub>B</sub>))</div>
+      <p>where Φ<sup>−1</sup> is the inverse CDF (quantile function) of the standard<br>Normal distribution.</p>
+      <p>The transformed variable Y′<sub>B</sub> approximately follows:</p>
+      <div class="equation">Y′<sub>B</sub> ∼ 𝒩(μ<sub>A</sub>,σ<sub>A</sub><sup>2</sup>).</div>
+    </div>
+    <p>The IQR-trimmed full-period score is converted to its empirical midpoint percentile, <code>U=(rank−0.5)/n</code>, then mapped through a Normal distribution fitted to the latest-period reference scores: <code>Y′=μA+σAΦ⁻¹(U)</code>. The fitted reference parameters are μ=61.36 and σ=13.50. Mapped values are rounded to integers and constrained to 0–100. This preserves rank ordering while aligning the full-period marginal score distribution with a smooth latest-period target.</p>
+    <div class="plots">
+      <figure><img src="../plots/normal_quantile_mapping_distribution_overlay_MarketScore_hat.png" alt="Fitted-Normal score distribution overlay"><figcaption>Empirical score distributions before and after mapping, compared with the latest-period reference sample and its fitted Normal density.</figcaption></figure>
+      <figure><img src="../plots/normal_quantile_mapping_ecdf_overlay_MarketScore_hat.png" alt="Fitted-Normal score ECDF overlay"><figcaption>ECDF comparison showing how the final mapped scores align with the fitted latest-period target.</figcaption></figure>
+    </div>
+
+    <h3>Interactive adjusted distribution-shift review</h3>
+    <p>Select the final adjusted score or any champion explanatory variable, then filter the full-period population by year or ZIP. The fixed 83-ZIP latest-period reference remains unchanged. Predictor distributions are the observed full-period inputs; only <code>MarketScore_hat</code> switches to the final IQR-trimmed and fitted-Normal-mapped output.</p>
+    <div class="interactive-controls">
+      <label class="control-label" for="adjusted-validation-variable">Measure
+        <select id="adjusted-validation-variable" aria-label="Select adjusted score or explanatory variable"></select>
+      </label>
+      <label class="control-label" for="adjusted-validation-year">Year
+        <select id="adjusted-validation-year" aria-label="Select adjusted-score year"></select>
+      </label>
+      <label class="control-label" for="adjusted-validation-zip">ZIP code
+        <select id="adjusted-validation-zip" aria-label="Select adjusted-score ZIP code"></select>
+      </label>
+    </div>
+    <p id="adjusted-validation-chart-summary" class="muted" aria-live="polite"></p>
+    <div class="validation-chart-grid">
+      <div class="chart-shell"><svg id="adjusted-validation-distribution-chart" class="validation-chart" viewBox="0 0 1100 450" role="img" aria-label="Interactive adjusted empirical and fitted distribution comparison"></svg></div>
+      <div class="chart-shell"><svg id="adjusted-validation-ecdf-chart" class="validation-chart" viewBox="0 0 1100 450" role="img" aria-label="Interactive adjusted ECDF comparison"></svg></div>
+    </div>
+
+    <h3>Interpretation and contingencies</h3>
+    <ul>
+      <li>The overlay adjusts the marginal score distribution; it does not prove that historical reference scores would have followed the latest-period distribution.</li>
+      <li>Forcing history toward the latest-period regime may suppress genuine housing cycles, so the adjusted output should remain a sensitivity or contingency result until back-testing is available.</li>
+      <li>An alternative is to adjust selected explanatory variables where the change is economically defensible. Independent mapping can distort relationships among predictors; multivariate or copula-based methods could preserve the latest-period dependence structure.</li>
+      <li>Any production decision should compare final-score stability, ZIP ranking, calibration preservation, driver realism, and sensitivity to the chosen reference window.</li>
+    </ul>
+    <p>The final mapped output is saved as <code>scores_all_periods_adjusted.csv</code> with columns <code>Zip Code</code>, <code>City</code>, <code>County</code>, <code>PERIOD</code>, and <code>MarketScore_hat</code>.</p>
+  </section>
+
+  <section>
+    <h2>Interpretation and current decision</h2>
+    <p>The selected linear champion is the <b>refitted LassoCV</b>. Among models that pass the business-direction checks, it offers the best overall statistical performance, manageable complexity, and clear feature-family coverage. It retains nine original variables, materially improves in-sample fit over the OLS benchmark, and passes all defined business sign checks.</p>
+    <p><b>Full-period treatments:</b> the unadjusted champion remains the transparent primary scoring method. Two contingency treatments were also developed for historical application: first, cap or floor the nine numerical model predictors using 1.5×IQR limits estimated from the latest-period reference sample and score them with the unchanged champion pipeline; second, map the resulting score percentiles to a Normal distribution fitted to the latest-period scores. Predictor trimming materially improves the pre-overlay stability diagnostics, while the fitted-Normal overlay aligns the final marginal score distribution with the latest-period regime. Because the overlay may suppress genuine market cycles and final post-overlay stability has not yet been recalculated, <code>scores_all_periods_adjusted.csv</code> should be treated as a sensitivity or contingency output rather than replacing the unadjusted score.</p>
+    <p class="muted">The champion refit has not yet received a new outer five-fold CV evaluation; that validation should precede production use.</p>
+    <p class="muted">All Lasso p-values are exploratory post-selection OLS statistics. The corrected sample contains 83 unique ZIPs.</p>
+  </section>
+</main>
+<script src="assets/full-period-scoring-data.js"></script>
+<script src="assets/adjusted-full-period-scores.js"></script>
+<script>
+  // Keep the narrative order aligned with 2_modeling.ipynb: scoring first,
+  // then the stability and distribution-shift analysis of those scores.
+  document.getElementById("full-period-scoring")
+    ?.after(document.getElementById("full-period-analysis"));
+</script>
+<script>
+(() => {
+  "use strict";
+  const data = window.fullPeriodScoringData;
+  const zipSelect = document.getElementById("full-period-zip");
+  const variableControls = document.getElementById("full-period-variable-controls");
+  const svg = document.getElementById("full-period-chart");
+  const shell = document.getElementById("full-period-chart-shell");
+  const tooltip = document.getElementById("full-period-tooltip");
+  const legend = document.getElementById("full-period-legend");
+  const summary = document.getElementById("full-period-chart-summary");
+  if (!data || !zipSelect || !svg) return;
+
+  const ns = "http://www.w3.org/2000/svg";
+  const width = 1100;
+  const height = 520;
+  const margin = { top: 28, right: 80, bottom: 58, left: 70 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const scoreColor = "#1B5E20";
+  const driverColors = ["#C44E00", "#D8660A", "#E67E22", "#EE8D2D", "#F5A623", "#B94700", "#CE5B0B", "#DB7616", "#F0A047"];
+  const defaultVariables = new Set(["MEDIAN_DOM", "OFF_MARKET_IN_TWO_WEEKS", "SOLD_ABOVE_LIST"]);
+  const percentageVariables = new Set(["AVG_SALE_TO_LIST", "SOLD_ABOVE_LIST", "OFF_MARKET_IN_TWO_WEEKS"]);
+
+  const createSvg = (name, attributes = {}, text = "") => {
+    const element = document.createElementNS(ns, name);
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    if (text) element.textContent = text;
+    return element;
+  };
+  const parsePeriod = period => Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1, 1);
+  const formatPeriod = milliseconds => new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", timeZone: "UTC" }).format(new Date(milliseconds));
+  const selectedVariables = () => Array.from(variableControls.querySelectorAll("input:checked")).map(input => input.value);
+  const formatValue = (variable, value) => {
+    if (value === null || value === undefined) return "missing";
+    if (percentageVariables.has(variable) || variable.endsWith("_MOM") || variable.endsWith("_YOY")) return `${(value * 100).toFixed(1)}%`;
+    return Math.abs(value) >= 1000 ? value.toLocaleString(undefined, { maximumFractionDigits: 0 }) : value.toFixed(3).replace(/\.000$/, "");
+  };
+
+  Object.keys(data.zips).sort((a, b) => Number(a) - Number(b)).forEach(zip => {
+    const option = document.createElement("option");
+    const item = data.zips[zip];
+    option.value = zip;
+    option.textContent = `${zip} — ${item.city} (${item.rows.length} observations)`;
+    zipSelect.appendChild(option);
+  });
+  zipSelect.value = data.zips["92627"] ? "92627" : zipSelect.options[0].value;
+
+  data.features.forEach((variable, index) => {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = variable;
+    input.checked = defaultVariables.has(variable);
+    input.dataset.featureIndex = String(index + 2);
+    input.addEventListener("change", render);
+    label.append(input, document.createTextNode(variable));
+    variableControls.appendChild(label);
+  });
+
+  function render() {
+    const zip = zipSelect.value;
+    const item = data.zips[zip];
+    const rows = item.rows.map(row => ({ raw: row, time: parsePeriod(row[0]), score: row[1] }));
+    const variables = selectedVariables();
+    const firstTime = rows[0].time;
+    const lastTime = rows[rows.length - 1].time;
+    const timeSpan = Math.max(lastTime - firstTime, 1);
+    const x = time => margin.left + ((time - firstTime) / timeSpan) * plotWidth;
+    const yScore = value => margin.top + plotHeight - (value / 100) * plotHeight;
+
+    const standardized = {};
+    let zMinimum = -2;
+    let zMaximum = 2;
+    variables.forEach(variable => {
+      const featureIndex = data.features.indexOf(variable) + 2;
+      const observed = rows.map(row => row.raw[featureIndex]).filter(value => value !== null);
+      const mean = observed.reduce((total, value) => total + value, 0) / Math.max(observed.length, 1);
+      const variance = observed.reduce((total, value) => total + Math.pow(value - mean, 2), 0) / Math.max(observed.length, 1);
+      const standardDeviation = Math.sqrt(variance);
+      standardized[variable] = rows.map(row => {
+        const value = row.raw[featureIndex];
+        return value === null ? null : (standardDeviation > 0 ? (value - mean) / standardDeviation : 0);
+      });
+      standardized[variable].filter(value => value !== null).forEach(value => {
+        zMinimum = Math.min(zMinimum, value);
+        zMaximum = Math.max(zMaximum, value);
+      });
+    });
+    const zPadding = Math.max((zMaximum - zMinimum) * 0.08, 0.25);
+    zMinimum -= zPadding;
+    zMaximum += zPadding;
+    const yDriver = value => margin.top + plotHeight - ((value - zMinimum) / (zMaximum - zMinimum)) * plotHeight;
+
+    svg.replaceChildren();
+    svg.append(
+      createSvg("title", {}, `Full-period Market Score for ZIP ${zip}, ${item.city}`),
+      createSvg("desc", {}, `MarketScore_hat and ${variables.length} selected standardized explanatory variables across ${rows.length} existing periods.`)
+    );
+    const grid = createSvg("g", { "aria-hidden": "true" });
+    for (let tick = 0; tick <= 100; tick += 20) {
+      const y = yScore(tick);
+      grid.append(
+        createSvg("line", { x1: margin.left, x2: width - margin.right, y1: y, y2: y, stroke: "#d8ccba", "stroke-width": "1" }),
+        createSvg("text", { x: margin.left - 12, y: y + 4, "text-anchor": "end", fill: "#5f584f", "font-size": "12" }, String(tick))
+      );
+    }
+    svg.appendChild(grid);
+
+    const tickIndexes = Array.from(new Set([0, 1, 2, 3, 4, 5].map(step => Math.round(step * (rows.length - 1) / 5))));
+    tickIndexes.forEach(index => {
+      const row = rows[index];
+      const xPosition = x(row.time);
+      svg.append(
+        createSvg("line", { x1: xPosition, x2: xPosition, y1: margin.top + plotHeight, y2: margin.top + plotHeight + 6, stroke: "#5f584f" }),
+        createSvg("text", { x: xPosition, y: margin.top + plotHeight + 23, "text-anchor": "middle", fill: "#5f584f", "font-size": "12" }, formatPeriod(row.time))
+      );
+    });
+    svg.append(
+      createSvg("line", { x1: margin.left, x2: margin.left, y1: margin.top, y2: margin.top + plotHeight, stroke: "#171512", "stroke-width": "1.2" }),
+      createSvg("line", { x1: width - margin.right, x2: width - margin.right, y1: margin.top, y2: margin.top + plotHeight, stroke: "#171512", "stroke-width": "1.2" }),
+      createSvg("line", { x1: margin.left, x2: width - margin.right, y1: margin.top + plotHeight, y2: margin.top + plotHeight, stroke: "#171512", "stroke-width": "1.2" }),
+      createSvg("text", { x: 18, y: margin.top + plotHeight / 2, transform: `rotate(-90 18 ${margin.top + plotHeight / 2})`, "text-anchor": "middle", fill: "#171512", "font-size": "13" }, "MarketScore_hat (0–100)"),
+      createSvg("text", { x: width - 16, y: margin.top + plotHeight / 2, transform: `rotate(90 ${width - 16} ${margin.top + plotHeight / 2})`, "text-anchor": "middle", fill: "#171512", "font-size": "13" }, "Explanatory variable (within-ZIP z-score)"),
+      createSvg("text", { x: margin.left + plotWidth / 2, y: height - 10, "text-anchor": "middle", fill: "#171512", "font-size": "13" }, "PERIOD")
+    );
+    for (let tick = 0; tick <= 4; tick += 1) {
+      const value = zMinimum + (tick / 4) * (zMaximum - zMinimum);
+      svg.appendChild(createSvg("text", { x: width - margin.right + 12, y: yDriver(value) + 4, fill: "#5f584f", "font-size": "12" }, value.toFixed(1)));
+    }
+
+    const scorePath = rows.map((row, index) => `${index ? "L" : "M"}${x(row.time).toFixed(2)},${yScore(row.score).toFixed(2)}`).join(" ");
+    svg.appendChild(createSvg("path", { d: scorePath, fill: "none", stroke: scoreColor, "stroke-width": "3", "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    rows.forEach(row => svg.appendChild(createSvg("circle", { cx: x(row.time), cy: yScore(row.score), r: "3.5", fill: scoreColor })));
+
+    variables.forEach((variable, variableIndex) => {
+      let path = "";
+      let continuing = false;
+      standardized[variable].forEach((value, rowIndex) => {
+        if (value === null) { continuing = false; return; }
+        path += `${continuing ? " L" : " M"}${x(rows[rowIndex].time).toFixed(2)},${yDriver(value).toFixed(2)}`;
+        continuing = true;
+      });
+      svg.appendChild(createSvg("path", { d: path.trim(), fill: "none", stroke: driverColors[variableIndex % driverColors.length], "stroke-width": "2", "stroke-dasharray": "5 5", "stroke-linejoin": "round" }));
+    });
+
+    const guide = createSvg("line", { y1: margin.top, y2: margin.top + plotHeight, stroke: "#5f584f", "stroke-width": "1", "stroke-dasharray": "3 4", visibility: "hidden", "pointer-events": "none" });
+    svg.appendChild(guide);
+    const overlay = createSvg("rect", { x: margin.left, y: margin.top, width: plotWidth, height: plotHeight, fill: "transparent", tabindex: "0", "aria-label": "Hover or focus to inspect chart values" });
+    svg.appendChild(overlay);
+
+    const showTooltip = (row, event) => {
+      guide.setAttribute("x1", x(row.time));
+      guide.setAttribute("x2", x(row.time));
+      guide.setAttribute("visibility", "visible");
+      const details = variables.map(variable => {
+        const featureIndex = data.features.indexOf(variable) + 2;
+        return `<div><b>${variable}:</b> ${formatValue(variable, row.raw[featureIndex])}</div>`;
+      }).join("");
+      tooltip.innerHTML = `<b>${row.raw[0]}</b><div><b>MarketScore_hat:</b> ${row.score}</div>${details}`;
+      tooltip.hidden = false;
+      const bounds = shell.getBoundingClientRect();
+      const left = Math.min(Math.max(event.clientX - bounds.left + 12, 8), Math.max(bounds.width - 310, 8));
+      const top = Math.min(Math.max(event.clientY - bounds.top + 12, 8), Math.max(bounds.height - 160, 8));
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    };
+    overlay.addEventListener("pointermove", event => {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      const local = point.matrixTransform(svg.getScreenCTM().inverse());
+      const targetTime = firstTime + Math.min(Math.max((local.x - margin.left) / plotWidth, 0), 1) * timeSpan;
+      const row = rows.reduce((best, candidate) => Math.abs(candidate.time - targetTime) < Math.abs(best.time - targetTime) ? candidate : best, rows[0]);
+      showTooltip(row, event);
+    });
+    overlay.addEventListener("pointerleave", () => { tooltip.hidden = true; guide.setAttribute("visibility", "hidden"); });
+
+    legend.replaceChildren();
+    const addLegend = (label, color, dotted = false) => {
+      const itemElement = document.createElement("span");
+      itemElement.className = "legend-item";
+      itemElement.style.color = color;
+      const line = document.createElement("span");
+      line.className = `legend-line${dotted ? " dotted" : ""}`;
+      const labelElement = document.createElement("span");
+      labelElement.style.color = "var(--muted)";
+      labelElement.textContent = label;
+      itemElement.append(line, labelElement);
+      legend.appendChild(itemElement);
+    };
+    addLegend("MarketScore_hat", scoreColor);
+    variables.forEach((variable, index) => addLegend(variable, driverColors[index % driverColors.length], true));
+    summary.textContent = `ZIP ${zip} — ${item.city}: ${rows.length} existing observations from ${rows[0].raw[0]} through ${rows[rows.length - 1].raw[0]}.`;
+  }
+
+  zipSelect.addEventListener("change", render);
+  render();
+})();
+</script>
+<script>
+function setupDistributionReview(prefix, adjustedScores) {
+  "use strict";
+  const data = window.fullPeriodScoringData;
+  const variableSelect = document.getElementById(`${prefix}-variable`);
+  const yearSelect = document.getElementById(`${prefix}-year`);
+  const zipSelect = document.getElementById(`${prefix}-zip`);
+  const densitySvg = document.getElementById(`${prefix}-distribution-chart`);
+  const ecdfSvg = document.getElementById(`${prefix}-ecdf-chart`);
+  const summary = document.getElementById(`${prefix}-chart-summary`);
+  if (!data || !variableSelect || !yearSelect || !zipSelect || !densitySvg || !ecdfSvg) return;
+
+  const ns = "http://www.w3.org/2000/svg";
+  const width = 1100, height = 450;
+  const margin = { top: 45, right: 35, bottom: 62, left: 78 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const referenceColor = "#18794e";
+  const fullColor = "#d56b1f";
+  const percentageVariables = new Set(["AVG_SALE_TO_LIST", "SOLD_ABOVE_LIST", "OFF_MARKET_IN_TWO_WEEKS"]);
+  const measures = ["MarketScore_hat", ...data.features];
+  const createSvg = (name, attrs = {}, content = "") => {
+    const element = document.createElementNS(ns, name);
+    Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, value));
+    if (content) element.textContent = content;
+    return element;
+  };
+  const quantile = (sorted, probability) => {
+    if (!sorted.length) return null;
+    const position = (sorted.length - 1) * probability;
+    const lower = Math.floor(position), upper = Math.ceil(position);
+    return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+  };
+  const mean = values => values.reduce((total, value) => total + value, 0) / values.length;
+  const standardDeviation = values => {
+    if (values.length < 2) return 0;
+    const average = mean(values);
+    return Math.sqrt(values.reduce((total, value) => total + Math.pow(value - average, 2), 0) / (values.length - 1));
+  };
+  const formatNumber = (variable, value) => {
+    if (value === null || !Number.isFinite(value)) return "N/A";
+    if (percentageVariables.has(variable) || variable.endsWith("_MOM") || variable.endsWith("_YOY")) return `${(value * 100).toFixed(1)}%`;
+    if (Math.abs(value) >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    return value.toFixed(Math.abs(value) < 1 ? 3 : 1).replace(/\.0$/, "");
+  };
+
+  measures.forEach(measure => {
+    const option = document.createElement("option");
+    option.value = measure;
+    option.textContent = measure;
+    variableSelect.appendChild(option);
+  });
+  const allYears = new Set();
+  Object.values(data.zips).forEach(item => item.rows.forEach(row => allYears.add(row[0].slice(0, 4))));
+  yearSelect.appendChild(new Option("All years", "all"));
+  Array.from(allYears).sort().forEach(year => yearSelect.appendChild(new Option(year, year)));
+  zipSelect.appendChild(new Option("All ZIP codes", "all"));
+  Object.keys(data.zips).sort((a, b) => Number(a) - Number(b)).forEach(zip => {
+    zipSelect.appendChild(new Option(`${zip} — ${data.zips[zip].city}`, zip));
+  });
+
+  function filteredValues() {
+    const variable = variableSelect.value;
+    const year = yearSelect.value;
+    const zip = zipSelect.value;
+    const featureIndex = data.features.indexOf(variable);
+    const fullIndex = variable === "MarketScore_hat" ? 1 : featureIndex + 2;
+    const referenceIndex = variable === "MarketScore_hat" ? 2 : featureIndex + 3;
+    const full = [];
+    Object.entries(data.zips).forEach(([zipCode, item]) => {
+      if (zip !== "all" && zipCode !== zip) return;
+      item.rows.forEach((row, rowIndex) => {
+        if (year !== "all" && row[0].slice(0, 4) !== year) return;
+        const value = variable === "MarketScore_hat" && adjustedScores
+          ? adjustedScores[zipCode]?.[rowIndex]
+          : row[fullIndex];
+        if (value !== null && Number.isFinite(value)) full.push(value);
+      });
+    });
+    const reference = data.referenceRows
+      .filter(row => zip === "all" || row[0] === zip)
+      .map(row => row[referenceIndex])
+      .filter(value => value !== null && Number.isFinite(value));
+    return { variable, full: full.sort((a, b) => a - b), reference: reference.sort((a, b) => a - b) };
+  }
+
+  function getRange(variable, full, reference) {
+    const pooled = [...full, ...reference].sort((a, b) => a - b);
+    if (!pooled.length) return [0, 1];
+    if (variable === "MarketScore_hat") return [0, 100];
+    let minimum = quantile(pooled, 0.005), maximum = quantile(pooled, 0.995);
+    if (minimum === maximum) { minimum -= 0.5; maximum += 0.5; }
+    return [minimum, maximum];
+  }
+
+  function histogram(values, minimum, maximum, bins) {
+    const widthValue = (maximum - minimum) / bins;
+    const counts = Array(bins).fill(0);
+    values.forEach(value => {
+      if (value < minimum || value > maximum) return;
+      const index = Math.min(Math.floor((value - minimum) / widthValue), bins - 1);
+      counts[index] += 1;
+    });
+    return counts.map((count, index) => ({
+      x: minimum + (index + 0.5) * widthValue,
+      density: values.length ? count / (values.length * widthValue) : 0,
+      binWidth: widthValue,
+    }));
+  }
+
+  function densitySeries(values, minimum, maximum, points = 160) {
+    if (values.length < 2) return { kde: [], normal: [] };
+    const sigma = standardDeviation(values);
+    const bandwidth = Math.max(1.06 * sigma * Math.pow(values.length, -0.2), (maximum - minimum) / 120, 1e-9);
+    const average = mean(values);
+    const normalSigma = Math.max(sigma, 1e-9);
+    const kde = [], normal = [];
+    for (let index = 0; index < points; index += 1) {
+      const x = minimum + index * (maximum - minimum) / (points - 1);
+      const empirical = values.reduce((total, value) => {
+        const z = (x - value) / bandwidth;
+        return total + Math.exp(-0.5 * z * z);
+      }, 0) / (values.length * bandwidth * Math.sqrt(2 * Math.PI));
+      const zNormal = (x - average) / normalSigma;
+      kde.push([x, empirical]);
+      normal.push([x, Math.exp(-0.5 * zNormal * zNormal) / (normalSigma * Math.sqrt(2 * Math.PI))]);
+    }
+    return { kde, normal };
+  }
+
+  function baseChart(svg, title, xLabel, yLabel, minimum, maximum, yMaximum) {
+    svg.replaceChildren();
+    svg.append(createSvg("title", {}, title), createSvg("desc", {}, `${title}, controlled by measure, year, and ZIP selections.`));
+    const x = value => margin.left + ((value - minimum) / (maximum - minimum)) * plotWidth;
+    const y = value => margin.top + plotHeight - (value / Math.max(yMaximum, 1e-12)) * plotHeight;
+    for (let tick = 0; tick <= 5; tick += 1) {
+      const yValue = yMaximum * tick / 5;
+      const yPosition = y(yValue);
+      svg.append(
+        createSvg("line", { x1: margin.left, x2: width - margin.right, y1: yPosition, y2: yPosition, stroke: "#d8ccba" }),
+        createSvg("text", { x: margin.left - 10, y: yPosition + 4, "text-anchor": "end", fill: "#5f584f", "font-size": "11" }, yValue.toFixed(yMaximum <= 1 ? 2 : 3))
+      );
+    }
+    for (let tick = 0; tick <= 5; tick += 1) {
+      const value = minimum + (maximum - minimum) * tick / 5;
+      const xPosition = x(value);
+      svg.append(
+        createSvg("line", { x1: xPosition, x2: xPosition, y1: margin.top + plotHeight, y2: margin.top + plotHeight + 6, stroke: "#5f584f" }),
+        createSvg("text", { x: xPosition, y: margin.top + plotHeight + 22, "text-anchor": "middle", fill: "#5f584f", "font-size": "11" }, formatNumber(variableSelect.value, value))
+      );
+    }
+    svg.append(
+      createSvg("line", { x1: margin.left, x2: margin.left, y1: margin.top, y2: margin.top + plotHeight, stroke: "#171512" }),
+      createSvg("line", { x1: margin.left, x2: width - margin.right, y1: margin.top + plotHeight, y2: margin.top + plotHeight, stroke: "#171512" }),
+      createSvg("text", { x: margin.left + plotWidth / 2, y: height - 10, "text-anchor": "middle", fill: "#171512", "font-size": "13" }, xLabel),
+      createSvg("text", { x: 18, y: margin.top + plotHeight / 2, transform: `rotate(-90 18 ${margin.top + plotHeight / 2})`, "text-anchor": "middle", fill: "#171512", "font-size": "13" }, yLabel),
+      createSvg("text", { x: margin.left, y: 23, fill: "#171512", "font-size": "16", "font-weight": "600" }, title)
+    );
+    return { x, y };
+  }
+
+  function pathFromSeries(series, x, y) {
+    return series.map(([xValue, yValue], index) => `${index ? "L" : "M"}${x(xValue).toFixed(2)},${y(yValue).toFixed(2)}`).join(" ");
+  }
+
+  function addLegend(svg, items) {
+    let xPosition = width - margin.right;
+    items.slice().reverse().forEach(item => {
+      const labelWidth = item.label.length * 6.5 + 42;
+      xPosition -= labelWidth;
+      svg.append(
+        createSvg("line", { x1: xPosition, x2: xPosition + 25, y1: 22, y2: 22, stroke: item.color, "stroke-width": item.width || 3, "stroke-dasharray": item.dash || "none" }),
+        createSvg("text", { x: xPosition + 31, y: 26, fill: "#5f584f", "font-size": "11" }, item.label)
+      );
+    });
+  }
+
+  function renderDensity(variable, full, reference, minimum, maximum) {
+    const bins = variable === "MarketScore_hat" ? 25 : 35;
+    const fullHistogram = histogram(full, minimum, maximum, bins);
+    const referenceHistogram = histogram(reference, minimum, maximum, bins);
+    const fullDensity = densitySeries(full, minimum, maximum);
+    const referenceDensity = densitySeries(reference, minimum, maximum);
+    const candidates = [
+      ...fullHistogram.map(item => item.density), ...referenceHistogram.map(item => item.density),
+      ...fullDensity.kde.map(item => item[1]), ...fullDensity.normal.map(item => item[1]),
+      ...referenceDensity.kde.map(item => item[1]), ...referenceDensity.normal.map(item => item[1]),
+    ];
+    const yMaximum = Math.max(...candidates, 1e-12) * 1.1;
+    const { x, y } = baseChart(densitySvg, `Distribution comparison: ${variable}`, variable, "Density", minimum, maximum, yMaximum);
+    if (reference.length) {
+      const referenceP01 = quantile(reference, 0.01);
+      const referenceP99 = quantile(reference, 0.99);
+      densitySvg.appendChild(createSvg("rect", {
+        x: x(Math.max(referenceP01, minimum)), y: margin.top,
+        width: Math.max(x(Math.min(referenceP99, maximum)) - x(Math.max(referenceP01, minimum)), 0),
+        height: plotHeight, fill: referenceColor, opacity: 0.08,
+      }));
+    }
+    [
+      [fullHistogram, fullColor, 0.20],
+      [referenceHistogram, referenceColor, 0.28],
+    ].forEach(([series, color, opacity]) => series.forEach(item => {
+      densitySvg.appendChild(createSvg("rect", {
+        x: x(item.x - item.binWidth / 2), y: y(item.density),
+        width: Math.max(x(item.x + item.binWidth / 2) - x(item.x - item.binWidth / 2), 1),
+        height: y(0) - y(item.density), fill: color, opacity,
+      }));
+    }));
+    const lines = [
+      [fullDensity.kde, fullColor, "none", 3], [fullDensity.normal, fullColor, "7 5", 2],
+      [referenceDensity.kde, referenceColor, "none", 3], [referenceDensity.normal, referenceColor, "7 5", 2],
+    ];
+    lines.forEach(([series, color, dash, strokeWidth]) => {
+      if (series.length) densitySvg.appendChild(createSvg("path", { d: pathFromSeries(series, x, y), fill: "none", stroke: color, "stroke-width": strokeWidth, "stroke-dasharray": dash }));
+    });
+    [[full, fullColor], [reference, referenceColor]].forEach(([values, color]) => {
+      if (!values.length) return;
+      const median = quantile(values, 0.5);
+      if (median < minimum || median > maximum) return;
+      densitySvg.appendChild(createSvg("line", {
+        x1: x(median), x2: x(median), y1: margin.top, y2: margin.top + plotHeight,
+        stroke: color, "stroke-width": 2, "stroke-dasharray": "2 4",
+      }));
+    });
+    addLegend(densitySvg, [
+      { label: "Full-period KDE", color: fullColor }, { label: "Full-period normal", color: fullColor, dash: "7 5", width: 2 },
+      { label: "Reference KDE", color: referenceColor }, { label: "Reference normal", color: referenceColor, dash: "7 5", width: 2 },
+      { label: "Median", color: "#5f584f", dash: "2 4", width: 2 },
+    ]);
+  }
+
+  function ecdfSeries(values) {
+    if (!values.length) return [];
+    const maximumPoints = 700;
+    const step = Math.max(Math.floor(values.length / maximumPoints), 1);
+    const points = [];
+    for (let index = 0; index < values.length; index += step) points.push([values[index], (index + 1) / values.length]);
+    if (points[points.length - 1][0] !== values[values.length - 1]) points.push([values[values.length - 1], 1]);
+    return points;
+  }
+
+  function renderEcdf(variable, full, reference, minimum, maximum) {
+    const { x, y } = baseChart(ecdfSvg, `ECDF comparison: ${variable}`, variable, "Cumulative proportion", minimum, maximum, 1);
+    [[ecdfSeries(full), fullColor], [ecdfSeries(reference), referenceColor]].forEach(([series, color]) => {
+      if (series.length) ecdfSvg.appendChild(createSvg("path", { d: pathFromSeries(series, x, y), fill: "none", stroke: color, "stroke-width": 3 }));
+    });
+    addLegend(ecdfSvg, [
+      { label: `Full period (n=${full.length.toLocaleString()})`, color: fullColor },
+      { label: `Reference (n=${reference.length.toLocaleString()})`, color: referenceColor },
+    ]);
+  }
+
+  function render() {
+    const { variable, full, reference } = filteredValues();
+    const [minimum, maximum] = getRange(variable, full, reference);
+    renderDensity(variable, full, reference, minimum, maximum);
+    renderEcdf(variable, full, reference, minimum, maximum);
+    const fullMedian = quantile(full, 0.5), referenceMedian = quantile(reference, 0.5);
+    const yearText = yearSelect.value === "all" ? "all years" : yearSelect.value;
+    const zipText = zipSelect.value === "all" ? "all ZIPs" : `ZIP ${zipSelect.value}`;
+    summary.textContent = `${variable} — ${yearText}, ${zipText}: full-period n=${full.length.toLocaleString()}, median=${formatNumber(variable, fullMedian)}; reference n=${reference.length.toLocaleString()}, median=${formatNumber(variable, referenceMedian)}. Display range uses pooled 0.5th–99.5th percentiles${variable === "MarketScore_hat" ? " (fixed at 0–100)" : ""}.`;
+  }
+
+  [variableSelect, yearSelect, zipSelect].forEach(control => control.addEventListener("change", render));
+  render();
+}
+setupDistributionReview("validation");
+setupDistributionReview("adjusted-validation", window.adjustedFullPeriodScores);
+</script>
+</body>
+</html>

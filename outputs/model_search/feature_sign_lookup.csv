@@ -1,0 +1,39 @@
+Variable,Expected_sign,Rationale
+MEDIAN_SALE_PRICE,unconstrained,"Price level measures market value, not necessarily current strength."
+MEDIAN_SALE_PRICE_MOM,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_SALE_PRICE_YOY,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_LIST_PRICE,unconstrained,"Price level measures market value, not necessarily current strength."
+MEDIAN_LIST_PRICE_MOM,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_LIST_PRICE_YOY,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_PPSF,unconstrained,"Price level measures market value, not necessarily current strength."
+MEDIAN_PPSF_MOM,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_PPSF_YOY,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_LIST_PPSF,unconstrained,"Price level measures market value, not necessarily current strength."
+MEDIAN_LIST_PPSF_MOM,positive,Positive price momentum is provisionally associated with market strength.
+MEDIAN_LIST_PPSF_YOY,positive,Positive price momentum is provisionally associated with market strength.
+HOMES_SOLD,positive,Higher or increasing transaction activity indicates stronger demand.
+HOMES_SOLD_MOM,positive,Higher or increasing transaction activity indicates stronger demand.
+HOMES_SOLD_YOY,positive,Higher or increasing transaction activity indicates stronger demand.
+PENDING_SALES,positive,Higher or increasing transaction activity indicates stronger demand.
+PENDING_SALES_MOM,positive,Higher or increasing transaction activity indicates stronger demand.
+PENDING_SALES_YOY,positive,Higher or increasing transaction activity indicates stronger demand.
+NEW_LISTINGS,unconstrained,New listings reflect both supply and seller confidence.
+NEW_LISTINGS_MOM,unconstrained,New listings reflect both supply and seller confidence.
+NEW_LISTINGS_YOY,unconstrained,New listings reflect both supply and seller confidence.
+INVENTORY,negative,Higher or increasing inventory generally indicates weaker seller conditions.
+INVENTORY_MOM,negative,Higher or increasing inventory generally indicates weaker seller conditions.
+INVENTORY_YOY,negative,Higher or increasing inventory generally indicates weaker seller conditions.
+MEDIAN_DOM,negative,Longer or increasing time on market indicates weaker market speed.
+MEDIAN_DOM_MOM,negative,Longer or increasing time on market indicates weaker market speed.
+MEDIAN_DOM_YOY,negative,Longer or increasing time on market indicates weaker market speed.
+AVG_SALE_TO_LIST,positive,Higher competition and faster absorption indicate a stronger market.
+AVG_SALE_TO_LIST_MOM,positive,Higher competition and faster absorption indicate a stronger market.
+AVG_SALE_TO_LIST_YOY,positive,Higher competition and faster absorption indicate a stronger market.
+SOLD_ABOVE_LIST,positive,Higher competition and faster absorption indicate a stronger market.
+SOLD_ABOVE_LIST_MOM,positive,Higher competition and faster absorption indicate a stronger market.
+SOLD_ABOVE_LIST_YOY,positive,Higher competition and faster absorption indicate a stronger market.
+OFF_MARKET_IN_TWO_WEEKS,positive,Higher competition and faster absorption indicate a stronger market.
+OFF_MARKET_IN_TWO_WEEKS_MOM,positive,Higher competition and faster absorption indicate a stronger market.
+OFF_MARKET_IN_TWO_WEEKS_YOY,positive,Higher competition and faster absorption indicate a stronger market.
+County,not_applicable,Nominal category coefficients depend on the reference level.
+PARENT_METRO_REGION,not_applicable,Nominal category coefficients depend on the reference level.

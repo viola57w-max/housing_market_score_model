@@ -1,0 +1,2 @@
+r_squared,adjusted_r_squared,RMSE,MAE,spearman,sign_check,sign_failures,n_observations,n_original_variables,n_parameters,family_coverage,families_included,selected_alpha,cv_RMSE,cv_MAE,cv_r_squared,cv_spearman
+0.7700997880834681,0.7417559263403342,7.889739769149891,6.126406917299757,0.8733272608208243,PASS,,83,9,9,3,"demand_supply, market_speed, price",0.6747544053110693,,,,

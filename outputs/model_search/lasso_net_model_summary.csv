@@ -1,0 +1,2 @@
+r_squared,adjusted_r_squared,RMSE,MAE,spearman,sign_check,sign_failures,n_observations,n_original_variables,n_parameters,family_coverage,families_included,selected_alpha,cv_RMSE,cv_MAE,cv_r_squared,cv_spearman
+0.7882489025498987,0.7519487144155956,7.571916708239339,5.883339642742786,0.8869569203680823,FAIL,"INVENTORY_MOM, MEDIAN_PPSF_MOM",83,12,12,3,"demand_supply, geography, market_speed, price",0.5478901179593939,10.323126828365814,7.566199452057547,0.606416811367152,0.8295506424444625

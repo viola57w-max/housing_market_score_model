@@ -1,0 +1,55 @@
+﻿Variable,Description,Type,Column_type
+PERIOD_BEGIN,Start date of the reporting window.,Identifiers and time fields,Identifier
+PERIOD_END,End date of the reporting window.,Identifiers and time fields,Identifier
+PERIOD_DURATION,Length of the reporting window in days; expected to be 90 for this project.,Identifiers and time fields,Numerical
+REGION_TYPE,"Geographic classification of the observation, such as ZIP code.",Identifiers and time fields,Categorical
+REGION_TYPE_ID,Numeric identifier for the geographic classification.,Identifiers and time fields,Identifier
+TABLE_ID,Source-system identifier for the geographic market or table record. Primarily a technical key.,Identifiers and time fields,Identifier
+IS_SEASONALLY_ADJUSTED,Indicator showing whether the reported metrics were adjusted for recurring seasonal patterns.,Identifiers and time fields,Categorical
+Zip Code,Five-digit postal ZIP code represented by the observation. Treat as text to preserve leading zeros.,Identifiers and time fields,Identifier
+City,City associated with the ZIP code.,Identifiers and time fields,Categorical
+County,County associated with the ZIP code.,Identifiers and time fields,Categorical
+STATE,Full state name.,Identifiers and time fields,Categorical
+STATE_CODE_x,"State abbreviation, such as CA. The _x suffix likely resulted from a dataset merge.",Identifiers and time fields,Categorical
+PROPERTY_TYPE,"Property category included in the observation, such as all residential, single-family, condo, or townhouse.",Identifiers and time fields,Categorical
+PROPERTY_TYPE_ID,Numeric source-system identifier for the property category.,Identifiers and time fields,Identifier
+MEDIAN_SALE_PRICE,Median closing price of homes sold during the reporting window.,Price metrics,Numerical
+MEDIAN_SALE_PRICE_MOM,Month-over-month percentage change in median sale price.,Price metrics,Numerical
+MEDIAN_SALE_PRICE_YOY,Year-over-year percentage change in median sale price.,Price metrics,Numerical
+MEDIAN_LIST_PRICE,Median asking price of homes listed during the reporting window.,Price metrics,Numerical
+MEDIAN_LIST_PRICE_MOM,Month-over-month percentage change in median list price.,Price metrics,Numerical
+MEDIAN_LIST_PRICE_YOY,Year-over-year percentage change in median list price.,Price metrics,Numerical
+MEDIAN_PPSF,Median sale price per square foot for homes sold during the reporting window.,Price metrics,Numerical
+MEDIAN_PPSF_MOM,Month-over-month percentage change in median sale price per square foot.,Price metrics,Numerical
+MEDIAN_PPSF_YOY,Year-over-year percentage change in median sale price per square foot.,Price metrics,Numerical
+MEDIAN_LIST_PPSF,Median listing price per square foot for homes listed during the reporting window.,Price metrics,Numerical
+MEDIAN_LIST_PPSF_MOM,Month-over-month percentage change in median listing price per square foot.,Price metrics,Numerical
+MEDIAN_LIST_PPSF_YOY,Year-over-year percentage change in median listing price per square foot.,Price metrics,Numerical
+HOMES_SOLD,Number of home sales completed during the reporting window.,Sales and demand metrics,Numerical
+HOMES_SOLD_MOM,Month-over-month percentage change in completed home sales.,Sales and demand metrics,Numerical
+HOMES_SOLD_YOY,Year-over-year percentage change in completed home sales.,Sales and demand metrics,Numerical
+PENDING_SALES,Number of homes that went under contract during the reporting window.,Sales and demand metrics,Numerical
+PENDING_SALES_MOM,Month-over-month percentage change in pending sales.,Sales and demand metrics,Numerical
+PENDING_SALES_YOY,Year-over-year percentage change in pending sales.,Sales and demand metrics,Numerical
+NEW_LISTINGS,Number of homes newly listed for sale during the reporting window.,Sales and demand metrics,Numerical
+NEW_LISTINGS_MOM,Month-over-month percentage change in new listings.,Sales and demand metrics,Numerical
+NEW_LISTINGS_YOY,Year-over-year percentage change in new listings.,Sales and demand metrics,Numerical
+INVENTORY,"Number of homes actively available for sale during or at the end of the reporting window, depending on the source definition.",Supply metrics,Numerical
+INVENTORY_MOM,Month-over-month percentage change in housing inventory.,Supply metrics,Numerical
+INVENTORY_YOY,Year-over-year percentage change in housing inventory.,Supply metrics,Numerical
+MEDIAN_DOM,Median days on market before a listed home went under contract. Lower values generally indicate a faster market.,Market speed and competitiveness,Numerical
+MEDIAN_DOM_MOM,Month-over-month change in median days on market. Verify whether this is a percentage change or a difference in days.,Market speed and competitiveness,Numerical
+MEDIAN_DOM_YOY,Year-over-year change in median days on market. Verify whether this is a percentage change or a difference in days.,Market speed and competitiveness,Numerical
+AVG_SALE_TO_LIST,"Average sale-to-list price ratio: sale price divided by the final list price. A value above 1, or above 100%, indicates sales above asking price on average.",Market speed and competitiveness,Numerical
+AVG_SALE_TO_LIST_MOM,Month-over-month change in the average sale-to-list ratio.,Market speed and competitiveness,Numerical
+AVG_SALE_TO_LIST_YOY,Year-over-year change in the average sale-to-list ratio.,Market speed and competitiveness,Numerical
+SOLD_ABOVE_LIST,Proportion of sold homes whose sale price exceeded their final list price.,Market speed and competitiveness,Numerical
+SOLD_ABOVE_LIST_MOM,Month-over-month change in the proportion of homes sold above list price.,Market speed and competitiveness,Numerical
+SOLD_ABOVE_LIST_YOY,Year-over-year change in the proportion of homes sold above list price.,Market speed and competitiveness,Numerical
+OFF_MARKET_IN_TWO_WEEKS,Proportion of newly listed homes that became pending or otherwise went off market within two weeks.,Market speed and competitiveness,Numerical
+OFF_MARKET_IN_TWO_WEEKS_MOM,Month-over-month change in the proportion going off market within two weeks.,Market speed and competitiveness,Numerical
+OFF_MARKET_IN_TWO_WEEKS_YOY,Year-over-year change in the proportion going off market within two weeks.,Market speed and competitiveness,Numerical
+PARENT_METRO_REGION,Metropolitan area containing the ZIP code.,Geographic hierarchy and metadata,Categorical
+PARENT_METRO_REGION_METRO_CODE,"Numeric code identifying the parent metropolitan area, often a CBSA or source-system metro code.",Geographic hierarchy and metadata,Identifier
+REGION,"Source-system geographic name, commonly a formatted ZIP-region label. Compare with Zip Code to determine whether it is redundant.",Geographic hierarchy and metadata,Identifier
+LAST_UPDATED,"Date or timestamp when the source record was most recently refreshed. This is metadata, not the market observation date.",Geographic hierarchy and metadata,Identifier

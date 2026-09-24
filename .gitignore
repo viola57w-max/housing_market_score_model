@@ -1,0 +1,14 @@
+_develope/
+_developer/
+_raw/
+_analysis/
+_archive/
+**/_archive/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+__pycache__/
+**/__pycache__/
+.DS_Store
+**/.DS_Store
+*.py[cod]
+~$*
